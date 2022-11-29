@@ -48,3 +48,8 @@ func TestSortedRandom(t *testing.T) {
 	slice := in.ToSlice()
 	assert.True(t, sort.SliceIsSorted(slice, func(i, j int) bool { return slice[i] < slice[j] }))
 }
+
+func TestCount(t *testing.T) {
+	count := streams.Of[int](1, 2, 3, 4, 5).Count()
+	assert.EqualValues(t, 5, count)
+}

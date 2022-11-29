@@ -14,6 +14,24 @@ func (si *iterator[T]) Next() (T, error) {
 	return si.next()
 }
 
+func (si *iterator[T]) ForEachRemaining(sink Sink[T]) {
+	for {
+		err := si.TryAdvance(sink)
+		if err != nil {
+			break
+		}
+	}
+}
+
+func (si *iterator[T]) TryAdvance(action Consumer[T]) error {
+	next, err := si.next()
+	if err != nil {
+		return err
+	}
+	action.Accept(next)
+	return nil
+}
+
 func NewStreamImpl[T any](iterator Iterator[T]) Stream[T] {
 	return &streamImpl[T]{iterator: iterator}
 }
@@ -66,7 +84,7 @@ func (s *streamImpl[T]) FlatMap(mapper func(T) Stream[T]) Stream[T] {
 	return FlatMap[T, T](s, mapper)
 }
 
-func (s *streamImpl[T]) Peek(consumer Consumer[T]) Stream[T] {
+func (s *streamImpl[T]) Peek(consumer func(T)) Stream[T] {
 	return NewStreamImpl(NewIterator(func() (T, error) {
 		nextValue, err := s.iterator.Next()
 		if err != nil {
@@ -132,4 +150,28 @@ func (s *streamImpl[T]) ToSlice() []T {
 		rv = append(rv, nextVal)
 	}
 	return rv
+}
+
+func (s *streamImpl[T]) ForEach(consumer func(T)) {
+	for nextVal, err := s.iterator.Next(); err == nil; nextVal, err = s.iterator.Next() {
+		consumer(nextVal)
+	}
+}
+func (s *streamImpl[T]) Count() int64 {
+	return evaluate(s, MakeCounting[T]())
+}
+
+func (s *streamImpl[T]) CopyInto(sink Sink[T], iterator Iterator[T]) {
+	sink.Begin(0)
+	iterator.ForEachRemaining(sink)
+	sink.End()
+}
+
+func (s *streamImpl[T]) WrapAndCopyInto(sink Sink[T], iterator Iterator[T]) Sink[T] {
+	s.CopyInto(sink, iterator)
+	return sink
+}
+
+func evaluate[IN any, OUT any](s *streamImpl[IN], terminalOp TerminalOp[IN, OUT]) OUT {
+	return terminalOp.evaluateSequential(s, s.iterator)
 }

@@ -1,11 +1,15 @@
 package stream
 
-type Consumer[T any] func(T)
+type Supplier[T any] interface {
+	Get() T
+}
+
 type Predicate[T any] func(T) bool
 type Comparator[T any] func(a, b T) int
 
 type Iterator[T any] interface {
 	Next() (T, error)
+	ForEachRemaining(sink Sink[T])
 }
 
 // Stream is a sequence of elements
@@ -39,13 +43,15 @@ type Stream[T any] interface {
 	// this stream. (If a mapped stream is null an empty stream is used, instead.)
 	FlatMap(func(T) Stream[T]) Stream[T]
 
-	Peek(consumer Consumer[T]) Stream[T]
+	Peek(consumer func(T)) Stream[T]
 
 	Limit(int64) Stream[T]
 
 	Sorted(comparator Comparator[T]) Stream[T]
 
 	Skip(count int64) Stream[T]
+
+	Count() int64
 
 	// ToSlice returns a slice containing the elements of this stream.
 	ToSlice() []T
@@ -95,7 +101,7 @@ func FlatMap[IT any, OT any](s Stream[IT], mapper func(IT) Stream[OT]) Stream[OT
 	}))
 }
 
-func Peek[T any](s Stream[T], consumer Consumer[T]) Stream[T] {
+func Peek[T any](s Stream[T], consumer func(T)) Stream[T] {
 	return s.Peek(consumer)
 }
 
@@ -128,4 +134,8 @@ func Sorted[T any](s Stream[T], comparator Comparator[T]) Stream[T] {
 
 func Skip[T any](s Stream[T], count int64) Stream[T] {
 	return s.Skip(count)
+}
+
+func Count[T any](s Stream[T]) int64 {
+	return s.Count()
 }
