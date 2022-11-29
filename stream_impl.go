@@ -1,5 +1,7 @@
 package stream
 
+import "sort"
+
 type iterator[T any] struct {
 	next func() (T, error)
 }
@@ -44,20 +46,16 @@ func (s *streamImpl[T]) Iterator() Iterator[T] {
 
 func (s *streamImpl[T]) Filter(predicate Predicate[T]) Stream[T] {
 	var zeroValue T
-	return &streamImpl[T]{
-		iterator: &iterator[T]{
-			next: func() (T, error) {
-				var nextValue T
-				var err error
-				for nextValue, err = s.iterator.Next(); err == nil; nextValue, err = s.iterator.Next() {
-					if predicate(nextValue) {
-						return nextValue, nil
-					}
-				}
-				return zeroValue, err
-			},
-		},
-	}
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		var nextValue T
+		var err error
+		for nextValue, err = s.iterator.Next(); err == nil; nextValue, err = s.iterator.Next() {
+			if predicate(nextValue) {
+				return nextValue, nil
+			}
+		}
+		return zeroValue, err
+	}))
 }
 
 func (s *streamImpl[T]) Map(mapper func(T) T) Stream[T] {
@@ -66,6 +64,66 @@ func (s *streamImpl[T]) Map(mapper func(T) T) Stream[T] {
 
 func (s *streamImpl[T]) FlatMap(mapper func(T) Stream[T]) Stream[T] {
 	return FlatMap[T, T](s, mapper)
+}
+
+func (s *streamImpl[T]) Peek(consumer Consumer[T]) Stream[T] {
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		nextValue, err := s.iterator.Next()
+		if err != nil {
+			consumer(nextValue)
+		}
+		return nextValue, err
+	}))
+}
+
+func (s *streamImpl[T]) Limit(maxSize int64) Stream[T] {
+	remaining := maxSize
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		if remaining <= 0 {
+			var zeroVal T
+			return zeroVal, Done
+		}
+		nextValue, err := s.iterator.Next()
+		if err == nil {
+			remaining--
+		}
+		return nextValue, err
+	}))
+}
+
+func (s *streamImpl[T]) Sorted(comparator Comparator[T]) Stream[T] {
+	initialized := false
+	var slice []T
+	var zeroValue T
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		if !initialized {
+			slice = s.ToSlice()
+			sort.Slice(slice, func(i, j int) bool {
+				return comparator(slice[i], slice[j]) < 0
+			})
+			initialized = true
+		}
+		if len(slice) <= 0 {
+			return zeroValue, Done
+		}
+		rv := slice[0]
+		slice = slice[1:]
+		return rv, nil
+	}))
+}
+
+func (s *streamImpl[T]) Skip(count int64) Stream[T] {
+	remaining := count
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		for remaining > 0 {
+			remaining--
+			skippedVal, err := s.iterator.Next()
+			if err != nil {
+				return skippedVal, err
+			}
+		}
+		return s.iterator.Next()
+	}))
 }
 
 func (s *streamImpl[T]) ToSlice() []T {

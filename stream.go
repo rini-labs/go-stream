@@ -1,6 +1,8 @@
 package stream
 
+type Consumer[T any] func(T)
 type Predicate[T any] func(T) bool
+type Comparator[T any] func(a, b T) int
 
 type Iterator[T any] interface {
 	Next() (T, error)
@@ -37,8 +39,20 @@ type Stream[T any] interface {
 	// this stream. (If a mapped stream is null an empty stream is used, instead.)
 	FlatMap(func(T) Stream[T]) Stream[T]
 
+	Peek(consumer Consumer[T]) Stream[T]
+
+	Limit(int64) Stream[T]
+
+	Sorted(comparator Comparator[T]) Stream[T]
+
+	Skip(count int64) Stream[T]
+
 	// ToSlice returns a slice containing the elements of this stream.
 	ToSlice() []T
+}
+
+func Filter[T any](input Stream[T], predicate func(T) bool) Stream[T] {
+	return input.Filter(predicate)
 }
 
 func Map[IT any, OT any](s Stream[IT], mapper func(IT) OT) Stream[OT] {
@@ -79,4 +93,39 @@ func FlatMap[IT any, OT any](s Stream[IT], mapper func(IT) Stream[OT]) Stream[OT
 			}
 		}
 	}))
+}
+
+func Peek[T any](s Stream[T], consumer Consumer[T]) Stream[T] {
+	return s.Peek(consumer)
+}
+
+func Limit[T any](s Stream[T], maxSize int64) Stream[T] {
+	return s.Limit(maxSize)
+}
+
+// Distinct returns a stream consisting of the distinct elements (according to equality operator)
+// of the input stream.
+func Distinct[T comparable](s Stream[T]) Stream[T] {
+	processedElems := map[T]bool{}
+	iter := s.Iterator()
+	return NewStreamImpl(NewIterator(func() (T, error) {
+		for {
+			nextValue, err := iter.Next()
+			if err != nil {
+				return nextValue, err
+			}
+			if _, ok := processedElems[nextValue]; !ok {
+				processedElems[nextValue] = true
+				return nextValue, nil
+			}
+		}
+	}))
+}
+
+func Sorted[T any](s Stream[T], comparator Comparator[T]) Stream[T] {
+	return s.Sorted(comparator)
+}
+
+func Skip[T any](s Stream[T], count int64) Stream[T] {
+	return s.Skip(count)
 }
