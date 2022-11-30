@@ -46,6 +46,7 @@ type Stream[T any] interface {
 
 	Skip(count int64) Stream[T]
 
+	ForEach(consumer types.Consumer[T])
 	Count() int64
 
 	// ToSlice returns a slice containing the elements of this stream.

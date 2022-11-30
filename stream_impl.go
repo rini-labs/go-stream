@@ -156,11 +156,10 @@ func (s *streamImpl[T]) ToSlice() []T {
 	return rv
 }
 
-func (s *streamImpl[T]) ForEach(consumer func(T)) {
-	for nextVal, err := s.iterator.Next(); err == nil; nextVal, err = s.iterator.Next() {
-		consumer(nextVal)
-	}
+func (s *streamImpl[T]) ForEach(consumer types.Consumer[T]) {
+	evaluate(s, MakeForEach(consumer))
 }
+
 func (s *streamImpl[T]) Count() int64 {
 	return evaluate(s, MakeCounting[T]())
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rini-labs/go-stream/comparators"
 	"github.com/rini-labs/go-stream/streams"
+	"github.com/rini-labs/go-stream/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,5 +43,13 @@ func TestSortedRandom(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	count := streams.Of[int](1, 2, 3, 4, 5).Count()
+	assert.EqualValues(t, 5, count)
+}
+
+func TestForEach(t *testing.T) {
+	count := 0
+	streams.Of[int](1, 2, 3, 4, 5).ForEach(types.ToConsumer(func(i int) {
+		count++
+	}))
 	assert.EqualValues(t, 5, count)
 }
