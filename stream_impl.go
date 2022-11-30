@@ -1,6 +1,10 @@
 package stream
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/rini-labs/go-stream/types"
+)
 
 type iterator[T any] struct {
 	next func() (T, error)
@@ -23,7 +27,7 @@ func (si *iterator[T]) ForEachRemaining(sink Sink[T]) {
 	}
 }
 
-func (si *iterator[T]) TryAdvance(action Consumer[T]) error {
+func (si *iterator[T]) TryAdvance(action types.Consumer[T]) error {
 	next, err := si.next()
 	if err != nil {
 		return err
@@ -62,7 +66,7 @@ func (s *streamImpl[T]) Iterator() Iterator[T] {
 	return s.iterator
 }
 
-func (s *streamImpl[T]) Filter(predicate Predicate[T]) Stream[T] {
+func (s *streamImpl[T]) Filter(predicate types.Predicate[T]) Stream[T] {
 	var zeroValue T
 	return NewStreamImpl(NewIterator(func() (T, error) {
 		var nextValue T
@@ -109,7 +113,7 @@ func (s *streamImpl[T]) Limit(maxSize int64) Stream[T] {
 	}))
 }
 
-func (s *streamImpl[T]) Sorted(comparator Comparator[T]) Stream[T] {
+func (s *streamImpl[T]) Sorted(comparator types.Comparator[T]) Stream[T] {
 	initialized := false
 	var slice []T
 	var zeroValue T

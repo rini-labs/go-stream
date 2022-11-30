@@ -1,11 +1,9 @@
 package stream
 
-type Consumer[T any] interface {
-	Accept(val T)
-}
+import "github.com/rini-labs/go-stream/types"
 
 type Sink[T any] interface {
-	Consumer[T]
+	types.Consumer[T]
 
 	// Begin resets the sink state to receive a fresh data set.
 	Begin(size int64)

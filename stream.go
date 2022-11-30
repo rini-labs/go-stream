@@ -1,11 +1,6 @@
 package stream
 
-type Supplier[T any] interface {
-	Get() T
-}
-
-type Predicate[T any] func(T) bool
-type Comparator[T any] func(a, b T) int
+import "github.com/rini-labs/go-stream/types"
 
 type Iterator[T any] interface {
 	Next() (T, error)
@@ -29,7 +24,7 @@ type Stream[T any] interface {
 
 	// Filter returns a stream consisting of the elements of this stream that
 	// match the given predicate
-	Filter(predicate Predicate[T]) Stream[T]
+	Filter(predicate types.Predicate[T]) Stream[T]
 
 	// Map returns a stream consisting of the results of applying the given
 	// function to the elements of this stream.
@@ -47,7 +42,7 @@ type Stream[T any] interface {
 
 	Limit(int64) Stream[T]
 
-	Sorted(comparator Comparator[T]) Stream[T]
+	Sorted(comparator types.Comparator[T]) Stream[T]
 
 	Skip(count int64) Stream[T]
 
@@ -128,7 +123,7 @@ func Distinct[T comparable](s Stream[T]) Stream[T] {
 	}))
 }
 
-func Sorted[T any](s Stream[T], comparator Comparator[T]) Stream[T] {
+func Sorted[T any](s Stream[T], comparator types.Comparator[T]) Stream[T] {
 	return s.Sorted(comparator)
 }
 

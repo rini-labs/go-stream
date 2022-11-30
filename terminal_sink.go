@@ -1,6 +1,8 @@
 package stream
 
+import "github.com/rini-labs/go-stream/types"
+
 type TerminalSink[IN any, OUT any] interface {
 	Sink[IN]
-	Supplier[OUT]
+	types.Supplier[OUT]
 }

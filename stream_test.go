@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/rini-labs/go-stream/comparators"
 	"github.com/rini-labs/go-stream/streams"
 	"github.com/stretchr/testify/assert"
 )
@@ -28,25 +29,15 @@ func TestSkip(t *testing.T) {
 }
 
 func TestSorted(t *testing.T) {
-	in := streams.Of(1, -1, 4, 3, 2).Sorted(func(i, j int) int { return i - j })
-	slice := in.ToSlice()
-	assert.Equal(t, []int{-1, 1, 2, 3, 4}, slice)
+	out := streams.Of(1, -1, 4, 3, 2).Sorted(comparators.Int[int]).ToSlice()
+	assert.Equal(t, []int{-1, 1, 2, 3, 4}, out)
 }
 
 func TestSortedRandom(t *testing.T) {
 	var source []int
 	gofakeit.Slice(&source)
-	in := streams.OfSlice(source).Sorted(func(i, j int) int {
-		val := i - j
-		if val < 0 {
-			return -1
-		} else if val > 0 {
-			return 1
-		}
-		return 0
-	})
-	slice := in.ToSlice()
-	assert.True(t, sort.SliceIsSorted(slice, func(i, j int) bool { return slice[i] < slice[j] }))
+	out := streams.OfSlice(source).Sorted(comparators.Int[int]).ToSlice()
+	assert.True(t, sort.SliceIsSorted(out, func(i, j int) bool { return out[i] < out[j] }))
 }
 
 func TestCount(t *testing.T) {
