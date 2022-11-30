@@ -34,9 +34,9 @@ func TestSorted(t *testing.T) {
 }
 
 func TestSortedRandom(t *testing.T) {
-	var source []int64
+	var source []int
 	gofakeit.Slice(&source)
-	in := streams.OfSlice(source).Sorted(func(i, j int64) int {
+	in := streams.OfSlice(source).Sorted(func(i, j int) int {
 		val := i - j
 		if val < 0 {
 			return -1

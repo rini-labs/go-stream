@@ -14,17 +14,7 @@ type Sink[T any] interface {
 	End()
 }
 
-type abstractSink[T any] struct {
-}
-
-func (s *abstractSink[T]) Begin(_ int64) {
-}
-
-func (s *abstractSink[T]) End() {
-}
-
 type chainedSink[T any] struct {
-	abstractSink[T]
 	downstream Sink[T]
 }
 
