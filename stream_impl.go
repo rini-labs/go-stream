@@ -6,36 +6,6 @@ import (
 	"github.com/rini-labs/go-stream/types"
 )
 
-type iterator[T any] struct {
-	next func() (T, error)
-}
-
-func NewIterator[T any](next func() (T, error)) Iterator[T] {
-	return &iterator[T]{next: next}
-}
-
-func (si *iterator[T]) Next() (T, error) {
-	return si.next()
-}
-
-func (si *iterator[T]) ForEachRemaining(sink Sink[T]) {
-	for {
-		err := si.TryAdvance(sink)
-		if err != nil {
-			break
-		}
-	}
-}
-
-func (si *iterator[T]) TryAdvance(action types.Consumer[T]) error {
-	next, err := si.next()
-	if err != nil {
-		return err
-	}
-	action.Accept(next)
-	return nil
-}
-
 func NewStreamImpl[T any](iterator Iterator[T]) Stream[T] {
 	return &streamImpl[T]{iterator: iterator}
 }
@@ -149,11 +119,7 @@ func (s *streamImpl[T]) Skip(count int64) Stream[T] {
 }
 
 func (s *streamImpl[T]) ToSlice() []T {
-	var rv []T
-	for nextVal, err := s.iterator.Next(); err == nil; nextVal, err = s.iterator.Next() {
-		rv = append(rv, nextVal)
-	}
-	return rv
+	return evaluateToNode[T, T](s).AsSlice()
 }
 
 func (s *streamImpl[T]) ForEach(consumer types.Consumer[T]) {
@@ -177,4 +143,26 @@ func (s *streamImpl[T]) WrapAndCopyInto(sink Sink[T], iterator Iterator[T]) Sink
 
 func evaluate[IN any, OUT any](s *streamImpl[IN], terminalOp TerminalOp[IN, OUT]) OUT {
 	return terminalOp.evaluateSequential(s, s.iterator)
+}
+
+func evaluateToNode[IN any, OUT any](s *streamImpl[IN]) Node[OUT] {
+	nb := MakeNodeBuilder[OUT](-1)
+	return wrapAndCopyInto[IN, OUT, NodeBuilder[OUT]](nb, s.iterator).Build()
+}
+
+func wrapAndCopyInto[IN any, OUT any, S Sink[OUT]](sink S, iterator Iterator[IN]) S {
+	wrappedSink := wrapSink[IN, OUT](sink)
+	CopyInto(wrappedSink, iterator)
+	return sink
+}
+
+func CopyInto[IN any](wrappedSink Sink[IN], i Iterator[IN]) {
+	wrappedSink.Begin(-1)
+	i.ForEachRemaining(wrappedSink)
+	wrappedSink.End()
+}
+
+// Needs to improve
+func wrapSink[IN any, OUT any](s Sink[OUT]) Sink[IN] {
+	return s.(Sink[IN])
 }

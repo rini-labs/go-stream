@@ -12,14 +12,14 @@ type Sink[T any] interface {
 	End()
 }
 
-type chainedSink[T any] struct {
-	downstream Sink[T]
+type chainedSink[T any, OUT any] struct {
+	downstream Sink[OUT]
 }
 
-func (s *chainedSink[T]) Begin(size int64) {
+func (s *chainedSink[T, OUT]) Begin(size int64) {
 	s.downstream.Begin(size)
 }
 
-func (s *chainedSink[T]) End() {
+func (s *chainedSink[T, OUT]) End() {
 	s.downstream.End()
 }

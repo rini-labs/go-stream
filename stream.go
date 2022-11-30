@@ -1,11 +1,8 @@
 package stream
 
-import "github.com/rini-labs/go-stream/types"
-
-type Iterator[T any] interface {
-	Next() (T, error)
-	ForEachRemaining(sink Sink[T])
-}
+import (
+	"github.com/rini-labs/go-stream/types"
+)
 
 // Stream is a sequence of elements
 type Stream[T any] interface {
