@@ -130,6 +130,10 @@ func (s *streamImpl[T]) Count() int64 {
 	return evaluate(s, MakeCounting[T]())
 }
 
+func (s *streamImpl[T]) Reduce(accumulator types.BinaryOperator[T]) types.Optional[T] {
+	return evaluate(s, MakeReducerFromOperator(accumulator))
+}
+
 func (s *streamImpl[T]) CopyInto(sink Sink[T], iterator Iterator[T]) {
 	sink.Begin(0)
 	iterator.ForEachRemaining(sink)

@@ -46,6 +46,8 @@ type Stream[T any] interface {
 	ForEach(consumer types.Consumer[T])
 	Count() int64
 
+	Reduce(accumulator types.BinaryOperator[T]) types.Optional[T]
+
 	// ToSlice returns a slice containing the elements of this stream.
 	ToSlice() []T
 }
