@@ -64,46 +64,21 @@ func MakeReducer[T any, U any](seed U, reducer types.BiFunction[U, T, U], combin
 	})
 }
 
-type optionalReduceSink[T any] struct {
-	box[T]
-	empty    bool
-	operator types.BinaryOperator[T]
-}
-
-func (rs *optionalReduceSink[T]) Begin(_ int64) {
-	var zeroValue T
-	rs.empty = true
-	rs.state = zeroValue
-}
-
-func (rs *optionalReduceSink[T]) Accept(val T) {
-	if rs.empty {
-		rs.empty = false
-		rs.state = val
-	} else {
-		rs.state = rs.operator.Apply(rs.state, val)
-	}
-}
-
-func (rs *optionalReduceSink[T]) End() {
-}
-
-func (rs *optionalReduceSink[T]) Combine(other AccumulatingSink[T, T]) {
-	otherRS := other.(*optionalReduceSink[T])
-	if !otherRS.empty {
-		rs.Accept(otherRS.state)
-	}
-}
-
-func (rs *optionalReduceSink[T]) Get() types.Optional[T] {
-	if rs.empty {
-		return types.EmptyOptional[T]()
-	}
-	return types.OptionalOf[T](rs.state)
-}
-
 func MakeReducerFromOperator[T any](operator types.BinaryOperator[T]) TerminalOp[T, types.Optional[T]] {
-	return NewReduceOp[T, types.Optional[T]](func() AccumulatingSink[T, types.Optional[T]] {
-		return &optionalReduceSink[T]{operator: operator}
-	})
+	reducer := func(state types.Optional[T], val T) types.Optional[T] {
+		if !state.IsPresent() {
+			return types.OptionalOf[T](val)
+		}
+		stateVal, _ := state.Get()
+		return types.OptionalOf[T](operator.Apply(stateVal, val))
+	}
+	combiner := func(state types.Optional[T], otherState types.Optional[T]) types.Optional[T] {
+		if !otherState.IsPresent() {
+			return state
+		}
+		otherStateVal, _ := otherState.Get()
+		return reducer(state, otherStateVal)
+	}
+
+	return MakeReducer[T, types.Optional[T]](types.EmptyOptional[T](), types.BiFunctionFromFunc(reducer), types.BinaryOperatorFromFunc(combiner))
 }
