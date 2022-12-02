@@ -1,7 +1,7 @@
 package stream
 
 import (
-	"github.com/rini-labs/go-stream/types"
+	"github.com/rini-labs/go-stream/pkg/types"
 )
 
 // Stream is a sequence of elements
@@ -56,71 +56,12 @@ func Filter[T any](input Stream[T], predicate func(T) bool) Stream[T] {
 	return input.Filter(predicate)
 }
 
-func Map[IT any, OT any](s Stream[IT], mapper func(IT) OT) Stream[OT] {
-	var zeroValue OT
-	iter := s.Iterator()
-	return NewStreamImpl(NewIterator(func() (OT, error) {
-		if nextValue, err := iter.Next(); err == nil {
-			return mapper(nextValue), nil
-		} else {
-			return zeroValue, err
-		}
-	}))
-}
-
-func FlatMap[IT any, OT any](s Stream[IT], mapper func(IT) Stream[OT]) Stream[OT] {
-	var zeroValue OT
-
-	inputStreamIter := s.Iterator()
-	var nextOutputStreamIter Iterator[OT]
-
-	return NewStreamImpl(NewIterator(func() (OT, error) {
-		for {
-			if nextOutputStreamIter == nil {
-				if nextValue, err := inputStreamIter.Next(); err != nil {
-					nextOutputStreamIter = mapper(nextValue).Iterator()
-				} else {
-					return zeroValue, err
-				}
-			}
-			nextValue, err := nextOutputStreamIter.Next()
-			switch err {
-			case nil:
-				return nextValue, nil
-			case Done:
-				nextOutputStreamIter = nil
-			default:
-				return zeroValue, err
-			}
-		}
-	}))
-}
-
 func Peek[T any](s Stream[T], consumer func(T)) Stream[T] {
 	return s.Peek(consumer)
 }
 
 func Limit[T any](s Stream[T], maxSize int64) Stream[T] {
 	return s.Limit(maxSize)
-}
-
-// Distinct returns a stream consisting of the distinct elements (according to equality operator)
-// of the input stream.
-func Distinct[T comparable](s Stream[T]) Stream[T] {
-	processedElems := map[T]bool{}
-	iter := s.Iterator()
-	return NewStreamImpl(NewIterator(func() (T, error) {
-		for {
-			nextValue, err := iter.Next()
-			if err != nil {
-				return nextValue, err
-			}
-			if _, ok := processedElems[nextValue]; !ok {
-				processedElems[nextValue] = true
-				return nextValue, nil
-			}
-		}
-	}))
 }
 
 func Sorted[T any](s Stream[T], comparator types.Comparator[T]) Stream[T] {

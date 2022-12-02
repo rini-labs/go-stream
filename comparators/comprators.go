@@ -1,9 +1,9 @@
 package comparators
 
 import (
+	"github.com/rini-labs/go-stream/pkg/types"
 	"strings"
 
-	"github.com/rini-labs/go-stream/types"
 	"golang.org/x/exp/constraints"
 )
 

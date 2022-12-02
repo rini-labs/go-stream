@@ -1,13 +1,13 @@
 package stream_test
 
 import (
+	"github.com/rini-labs/go-stream/pkg/types"
 	"sort"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rini-labs/go-stream/comparators"
 	"github.com/rini-labs/go-stream/streams"
-	"github.com/rini-labs/go-stream/types"
 	"github.com/stretchr/testify/assert"
 )
 

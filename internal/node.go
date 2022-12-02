@@ -1,12 +1,14 @@
-package stream
+package internal
 
 import (
-	"github.com/rini-labs/go-stream/types"
+	"github.com/rini-labs/go-stream"
+	"github.com/rini-labs/go-stream/internal/iterator"
+	"github.com/rini-labs/go-stream/pkg/types"
 )
 
 type Node[T any] interface {
 	// Iterator returns an iterator for the elements of this stream.
-	Iterator() Iterator[T]
+	Iterator() stream.Iterator[T]
 
 	ForEach(consumer types.Consumer[T])
 
@@ -23,8 +25,8 @@ func EmptyNode[T any]() Node[T] {
 
 type emptyNode[T any] struct{}
 
-func (e emptyNode[T]) Iterator() Iterator[T] {
-	return EmptyIterator[T]()
+func (e emptyNode[T]) Iterator() stream.Iterator[T] {
+	return iterator.Empty[T]()
 }
 
 func (e emptyNode[T]) ForEach(_ types.Consumer[T]) {
@@ -54,11 +56,11 @@ type sliceNode[T any] struct {
 	curSize int
 }
 
-func (sn *sliceNode[T]) Iterator() Iterator[T] {
+func (sn *sliceNode[T]) Iterator() stream.Iterator[T] {
 	if sn.curSize == 0 {
-		return EmptyIterator[T]()
+		return iterator.Empty[T]()
 	}
-	return SliceIterator[T](sn.slice[:sn.curSize])
+	return iterator.OfSlice[T](sn.slice[:sn.curSize])
 }
 
 func (sn *sliceNode[T]) ForEach(consumer types.Consumer[T]) {

@@ -1,6 +1,8 @@
 package stream
 
-import "github.com/rini-labs/go-stream/types"
+import (
+	"github.com/rini-labs/go-stream/pkg/types"
+)
 
 type Sink[T any] interface {
 	types.Consumer[T]
@@ -10,16 +12,4 @@ type Sink[T any] interface {
 
 	// End indicates that all elements have been pushed.
 	End()
-}
-
-type chainedSink[T any, OUT any] struct {
-	downstream Sink[OUT]
-}
-
-func (s *chainedSink[T, OUT]) Begin(size int64) {
-	s.downstream.Begin(size)
-}
-
-func (s *chainedSink[T, OUT]) End() {
-	s.downstream.End()
 }

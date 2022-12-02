@@ -1,11 +1,13 @@
-package stream
+package internal
 
 import (
-	"github.com/rini-labs/go-stream/types"
+	"github.com/rini-labs/go-stream"
+	"github.com/rini-labs/go-stream/internal/iterator"
+	"github.com/rini-labs/go-stream/pkg/types"
 )
 
 type NodeBuilder[T any] interface {
-	Sink[T]
+	stream.Sink[T]
 	Build() Node[T]
 }
 
@@ -94,14 +96,14 @@ func (sb *spinedNodeBuilder[T]) End() {
 	sb.building = false
 }
 
-func (sb *spinedNodeBuilder[T]) Iterator() Iterator[T] {
+func (sb *spinedNodeBuilder[T]) Iterator() stream.Iterator[T] {
 	if sb.building {
 		panic("spinedNodeBuilder: still building")
 	}
 	if len(sb.slice) == 0 {
-		return EmptyIterator[T]()
+		return iterator.Empty[T]()
 	}
-	return SliceIterator[T](sb.slice)
+	return iterator.OfSlice[T](sb.slice)
 }
 
 func (sb *spinedNodeBuilder[T]) ForEach(consumer types.Consumer[T]) {
