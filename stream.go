@@ -7,8 +7,6 @@ type Stream[OUT any] interface {
 
 	Filter(predicate Predicate[OUT]) Stream[OUT]
 
-	ToArray() ([]OUT, error)
-
 	Sort(comparator Comparator[OUT]) Stream[OUT]
 
 	Peek(consumer Consumer[OUT]) Stream[OUT]
@@ -16,4 +14,6 @@ type Stream[OUT any] interface {
 	Limit(limit int) Stream[OUT]
 
 	Skip(skip int) Stream[OUT]
+
+	ToArray() ([]OUT, error)
 }
