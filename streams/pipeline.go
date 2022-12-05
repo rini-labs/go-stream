@@ -73,6 +73,18 @@ func (p *derivedPipeline[IN, OUT]) Sort(comparator stream.Comparator[OUT]) strea
 	return sortPipeline[OUT](p, comparator)
 }
 
+func (p *derivedPipeline[IN, OUT]) Peek(consumer stream.Consumer[OUT]) stream.Stream[OUT] {
+	return peekPipeline[OUT](p, consumer)
+}
+
+func (p *derivedPipeline[IN, OUT]) Limit(limit int) stream.Stream[OUT] {
+	return slicePipeline[OUT](p, 0, limit)
+}
+
+func (p *derivedPipeline[IN, OUT]) Skip(skip int) stream.Stream[OUT] {
+	return slicePipeline[OUT](p, skip, -1)
+}
+
 func (p *derivedPipeline[IN, OUT]) ToArray() ([]OUT, error) {
 	if p.linkedOrConsumed {
 		panic("stream has already been operated upon or closed")
