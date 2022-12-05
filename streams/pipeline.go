@@ -111,6 +111,16 @@ func (p *derivedPipeline[IN, OUT]) Reduce(reducer func(OUT, OUT) OUT) (OUT, erro
 	return evaluate[OUT, OUT](iterator, reduce.NewOp(reducer)), nil
 }
 
+func (p *derivedPipeline[IN, OUT]) Count() (int, error) {
+	iterator, err := p.Iterator()
+	if err != nil {
+		return 0, err
+	}
+	return evaluate[OUT, int](iterator, reduce.NewOp(func(state int, value OUT) int {
+		return state + 1
+	})), nil
+}
+
 func (p *derivedPipeline[IN, OUT]) wrap(iteratorSupplier stream.Supplier[stream.Iterator[IN]]) stream.Iterator[OUT] {
 	return iterators.WrappingIterator(p.wrapSink, iteratorSupplier)
 }

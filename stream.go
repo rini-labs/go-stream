@@ -20,4 +20,6 @@ type Stream[OUT any] interface {
 	ReduceWithSeed(seed OUT, reducer func(OUT, OUT) OUT) (OUT, error)
 
 	Reduce(reducer func(OUT, OUT) OUT) (OUT, error)
+
+	Count() (int, error)
 }

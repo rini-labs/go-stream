@@ -100,3 +100,11 @@ func TestSorting(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 1, 2, 2, 4}, data)
 }
+
+func TestCount(t *testing.T) {
+	count, err := streams.FlatMap(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5})), func(value int) stream.Stream[int] {
+		return streams.Of(iterators.OfSlice([]int{value, value}))
+	}).Count()
+	require.NoError(t, err)
+	assert.Equal(t, 10, count)
+}

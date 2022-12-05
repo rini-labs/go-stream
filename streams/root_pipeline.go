@@ -115,6 +115,16 @@ func (p *rootPipeline[OUT]) Reduce(reducer func(OUT, OUT) OUT) (OUT, error) {
 	return evaluate[OUT, OUT](iterator, reduce.NewOp(reducer)), nil
 }
 
+func (p *rootPipeline[OUT]) Count() (int, error) {
+	iterator, err := p.Iterator()
+	if err != nil {
+		return 0, err
+	}
+	return evaluate[OUT, int](iterator, reduce.NewOp(func(state int, value OUT) int {
+		return state + 1
+	})), nil
+}
+
 func (p *rootPipeline[OUT]) evaluateToArrayNode() nodes.Node[OUT] {
 	if p.linkedOrConsumed {
 		panic("stream has already been operated upon or closed")
