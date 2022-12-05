@@ -72,6 +72,10 @@ func (p *rootPipeline[OUT]) Filter(predicate stream.Predicate[OUT]) stream.Strea
 	return filterPipeline[OUT](p, predicate)
 }
 
+func (p *rootPipeline[OUT]) Sort(comparator stream.Comparator[OUT]) stream.Stream[OUT] {
+	return sortPipeline[OUT](p, comparator)
+}
+
 func (p *rootPipeline[OUT]) ToArray() ([]OUT, error) {
 	if p.linkedOrConsumed {
 		panic("stream has already been operated upon or closed")

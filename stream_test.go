@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/rini-labs/go-stream"
+	"github.com/rini-labs/go-stream/comparators"
 	"github.com/rini-labs/go-stream/consumers"
 	"github.com/rini-labs/go-stream/iterators"
 	"github.com/rini-labs/go-stream/predicates"
@@ -92,4 +93,10 @@ func TestDistinct(t *testing.T) {
 	data, err := streams.Distinct(streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}))).ToArray()
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 4}, data)
+}
+
+func TestSorting(t *testing.T) {
+	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2})).Sort(comparators.Natural[int]()).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 1, 2, 2, 4}, data)
 }

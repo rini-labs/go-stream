@@ -8,4 +8,6 @@ type Stream[OUT any] interface {
 	Filter(predicate Predicate[OUT]) Stream[OUT]
 
 	ToArray() ([]OUT, error)
+
+	Sort(comparator Comparator[OUT]) Stream[OUT]
 }
