@@ -87,3 +87,9 @@ func TestFlatMapper(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 1, 2, 2, 3, 3, 4, 4, 5, 5}, data)
 }
+
+func TestDistinct(t *testing.T) {
+	data, err := streams.Distinct(streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}))).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 2, 4}, data)
+}
