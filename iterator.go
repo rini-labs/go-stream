@@ -1,11 +1,13 @@
 package stream
 
-import (
-	"github.com/rini-labs/go-stream/pkg/types"
-)
+type Iterator[OUT any] interface {
+	Next() bool
+	Get() (OUT, error)
+	TryAdvance(consumer Consumer[OUT]) bool
+	ForEachRemaining(consumer Consumer[OUT])
+}
 
-type Iterator[T any] interface {
-	Next() (T, error)
-	TryAdvance(consumer types.Consumer[T]) bool
-	ForEachRemaining(consumer types.Consumer[T])
+type Iterable[OUT any] interface {
+	Iterator() (Iterator[OUT], error)
+	ForEach(consumer Consumer[OUT]) error
 }
