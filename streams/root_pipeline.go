@@ -2,6 +2,7 @@ package streams
 
 import (
 	"errors"
+	"github.com/rini-labs/go-stream/reduce"
 
 	"github.com/rini-labs/go-stream"
 	"github.com/rini-labs/go-stream/foreach"
@@ -56,6 +57,7 @@ func (p *rootPipeline[OUT]) iterator() (stream.Iterator[OUT], error) {
 }
 
 func (p *rootPipeline[OUT]) ForEach(consumer stream.Consumer[OUT]) error {
+
 	iterator, err := p.Iterator()
 	if err != nil {
 		return err
@@ -93,6 +95,24 @@ func (p *rootPipeline[OUT]) ToArray() ([]OUT, error) {
 		panic("stream has already been operated upon or closed")
 	}
 	return p.evaluateToArrayNode().AsArray()
+}
+
+func (p *rootPipeline[OUT]) ReduceWithSeed(seed OUT, reducer func(OUT, OUT) OUT) (OUT, error) {
+	iterator, err := p.Iterator()
+	if err != nil {
+		var zeroVal OUT
+		return zeroVal, err
+	}
+	return evaluate[OUT, OUT](iterator, reduce.NewOpWithSeed(seed, reducer)), nil
+}
+
+func (p *rootPipeline[OUT]) Reduce(reducer func(OUT, OUT) OUT) (OUT, error) {
+	iterator, err := p.Iterator()
+	if err != nil {
+		var zeroVal OUT
+		return zeroVal, err
+	}
+	return evaluate[OUT, OUT](iterator, reduce.NewOp(reducer)), nil
 }
 
 func (p *rootPipeline[OUT]) evaluateToArrayNode() nodes.Node[OUT] {
