@@ -5,13 +5,13 @@ import (
 	"github.com/rini-labs/go-stream/mapper"
 )
 
-func mapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) OUT) *derivedPipeline[IN, OUT] {
+func mapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) OUT) stream.Stream[OUT] {
 	return ofPipeline(p, func(sink stream.Sink[OUT]) stream.Sink[IN] {
 		return mapper.NewMapSink(sink, mapperFunc)
 	})
 }
 
-func flatMapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) stream.Stream[OUT]) *derivedPipeline[IN, OUT] {
+func flatMapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) stream.Stream[OUT]) stream.Stream[OUT] {
 	return ofPipeline(p, func(sink stream.Sink[OUT]) stream.Sink[IN] {
 		return mapper.NewFlatMapSink(sink, mapperFunc)
 	})
