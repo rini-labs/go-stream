@@ -1,19 +1,19 @@
 package stream
 
-type ErrorCodes int
+type Error int
 
 const (
-	Done ErrorCodes = iota
+	ErrDone Error = iota
+	ErrIteratorNotStarted
 )
 
-var errorCodesMessages []string
-
-func (e ErrorCodes) Error() string {
-	return errorCodesMessages[e]
-}
-
-func init() {
-	errorCodesMessages = []string{
-		"Stream finished",
+var (
+	errorMessages = []string{
+		"done",
+		"iterator not started",
 	}
+)
+
+func (e Error) Error() string {
+	return errorMessages[e]
 }

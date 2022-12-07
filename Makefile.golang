@@ -1,0 +1,24 @@
+GO := $(shell which go 2>/dev/null)
+
+INSTALL_DIR ?= /usr/local/sbin
+
+go/tidy: $(GO)
+	$(GO) mod tidy
+
+go/test:
+	@gotestsum
+
+## Clean compiled binary
+go/clean:
+	rm -rf ./dist
+
+
+## Lint code
+go/lint:
+	@golangci-lint run ./...
+
+## Format code according to Golang convention
+go/fmt: $(GO)
+	$(call assert-set,GO)
+	$(GO) fmt ./...
+

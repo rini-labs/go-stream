@@ -1,50 +1,110 @@
 package stream_test
 
 import (
-	"sort"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/rini-labs/go-stream"
+	"github.com/rini-labs/go-stream/comparators"
+	"github.com/rini-labs/go-stream/consumers"
+	"github.com/rini-labs/go-stream/iterators"
+	"github.com/rini-labs/go-stream/predicates"
 	"github.com/rini-labs/go-stream/streams"
+	"github.com/rini-labs/go-stream/supplier"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMap(t *testing.T) {
-	in := streams.Of[int](1, 2, 3, 4, 5)
-	double := in.Map(func(i int) int {
-		return i * 2
-	})
-	assert.Equal(t, []int{2, 4, 6, 8, 10}, double.ToSlice())
+var (
+	isEvent   = predicates.Of(func(value int) bool { return value%2 == 0 })
+	doubleInt = func(value int) int { return value * 2 }
+)
+
+func TestStreamFromIterator(t *testing.T) {
+	s := streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered)
+	assert.NotNil(t, s)
+
+	iterator, err := s.Iterator()
+	require.NoError(t, err)
+	count := 0
+	iterator.ForEachRemaining(consumers.Of(func(value int) {
+		count++
+	}))
+	assert.Equal(t, 5, count)
+
+	err = s.Close()
+	require.NoError(t, err)
+
 }
 
-func TestLimit(t *testing.T) {
-	in := streams.Of[int](1, 2, 3, 4, 5).Limit(2)
-	assert.Equal(t, []int{1, 2}, in.ToSlice())
+func TestStreamFromIteratorSupplier(t *testing.T) {
+	s := streams.OfSupplier(supplier.Of(func() (stream.Iterator[int], error) { return iterators.OfSlice([]int{1, 2, 3, 4, 5}), nil }), stream.IsSorted|stream.IsOrdered)
+	assert.NotNil(t, s)
+
+	iterator, err := s.Iterator()
+	require.NoError(t, err)
+	count := 0
+	iterator.ForEachRemaining(consumers.Of(func(value int) {
+		count++
+	}))
+	assert.Equal(t, 5, count)
+
+	err = s.Close()
+	require.NoError(t, err)
+
 }
 
-func TestSkip(t *testing.T) {
-	in := streams.Of[int](1, 2, 3, 4, 5).Skip(2)
-	assert.Equal(t, []int{3, 4, 5}, in.ToSlice())
+func TestForEach(t *testing.T) {
+	s := streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered)
+	assert.NotNil(t, s)
+
+	count := 0
+	err := s.ForEach(consumers.Of(func(value int) {
+		count++
+	}))
+	require.NoError(t, err)
+	assert.Equal(t, 5, count)
+
+	err = s.Close()
+	require.NoError(t, err)
 }
 
-func TestSorted(t *testing.T) {
-	in := streams.Of(1, -1, 4, 3, 2).Sorted(func(i, j int) int { return i - j })
-	slice := in.ToSlice()
-	assert.Equal(t, []int{-1, 1, 2, 3, 4}, slice)
+func TestFilter(t *testing.T) {
+	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered).Filter(isEvent).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{2, 4}, data)
+	require.NoError(t, err)
 }
 
-func TestSortedRandom(t *testing.T) {
-	var source []int64
-	gofakeit.Slice(&source)
-	in := streams.OfSlice(source).Sorted(func(i, j int64) int {
-		val := i - j
-		if val < 0 {
-			return -1
-		} else if val > 0 {
-			return 1
-		}
-		return 0
-	})
-	slice := in.ToSlice()
-	assert.True(t, sort.SliceIsSorted(slice, func(i, j int) bool { return slice[i] < slice[j] }))
+func TestMapper(t *testing.T) {
+	data, err := streams.Map(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), doubleInt).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{2, 4, 6, 8, 10}, data)
+}
+
+func TestFlatMapper(t *testing.T) {
+	data, err := streams.FlatMap(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), func(value int) stream.Stream[int] {
+		return streams.Of(iterators.OfSlice([]int{value, value}), stream.IsSorted|stream.IsOrdered)
+	}).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 1, 2, 2, 3, 3, 4, 4, 5, 5}, data)
+}
+
+func TestDistinct(t *testing.T) {
+	data, err := streams.Distinct(streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered)).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 2, 4}, data)
+}
+
+func TestSorting(t *testing.T) {
+	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered).Sort(comparators.Natural[int]()).ToArray()
+	require.NoError(t, err)
+	assert.Equal(t, []int{1, 1, 2, 2, 4}, data)
+}
+
+func TestCount(t *testing.T) {
+	count, err := streams.FlatMap(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), func(value int) stream.Stream[int] {
+		return streams.Of(iterators.OfSlice([]int{value, value}), stream.IsSorted|stream.IsOrdered)
+	}).Count()
+	require.NoError(t, err)
+	assert.Equal(t, 10, count)
 }
