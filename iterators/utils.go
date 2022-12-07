@@ -18,3 +18,14 @@ func forEachRemaining[OUT any](iterator stream.Iterator[OUT], consumer stream.Co
 	for iterator.TryAdvance(consumer) {
 	}
 }
+
+func getExactSizeIfKnown[OUT any](i stream.Iterator[OUT]) int {
+	if i.HasCharacteristics(SIZED) {
+		return -1
+	}
+	return i.EstimateSize()
+}
+
+func hasCharacteristics[OUT any](i stream.Iterator[OUT], characteristics int) bool {
+	return (i.Characteristics() & characteristics) == characteristics
+}

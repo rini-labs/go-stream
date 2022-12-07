@@ -42,3 +42,16 @@ func (si *sliceIterator[OUT]) ForEachRemaining(consumer stream.Consumer[OUT]) {
 func (si *sliceIterator[OUT]) TryAdvance(consumer stream.Consumer[OUT]) bool {
 	return tryAdvance[OUT](si, consumer)
 }
+
+func (si *sliceIterator[OUT]) EstimateSize() int {
+	return len(si.values)
+}
+func (si *sliceIterator[OUT]) GetExactSizeIfKnown() int {
+	return getExactSizeIfKnown[OUT](si)
+}
+func (si *sliceIterator[OUT]) Characteristics() int {
+	return ORDERED | SIZED
+}
+func (si *sliceIterator[OUT]) HasCharacteristics(characteristics int) bool {
+	return hasCharacteristics[OUT](si, characteristics)
+}

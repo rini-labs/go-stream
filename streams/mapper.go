@@ -6,15 +6,15 @@ import (
 )
 
 func mapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) OUT) stream.Stream[OUT] {
-	return ofPipeline(p, func(sink stream.Sink[OUT]) stream.Sink[IN] {
+	return OfStateless(p, func(flags int, sink stream.Sink[OUT]) stream.Sink[IN] {
 		return mapper.NewMapSink(sink, mapperFunc)
-	})
+	}, stream.NotSorted|stream.NotDistinct)
 }
 
 func flatMapPipeline[IN any, OUT any](p pipeline[IN], mapperFunc func(v IN) stream.Stream[OUT]) stream.Stream[OUT] {
-	return ofPipeline(p, func(sink stream.Sink[OUT]) stream.Sink[IN] {
+	return OfStateless(p, func(flags int, sink stream.Sink[OUT]) stream.Sink[IN] {
 		return mapper.NewFlatMapSink(sink, mapperFunc)
-	})
+	}, stream.NotSorted|stream.NotDistinct|stream.NotSized)
 }
 
 func Map[IN any, OUT any](s stream.Stream[IN], mapper func(v IN) OUT) stream.Stream[OUT] {

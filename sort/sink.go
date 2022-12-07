@@ -1,6 +1,7 @@
 package sort
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/rini-labs/go-stream"
@@ -15,18 +16,23 @@ func NewSink[IN any](downstream stream.Sink[IN], comparator stream.Comparator[IN
 type sink[IN any] struct {
 	sinks.ChainedSink[IN, IN]
 
-	comparator stream.Comparator[IN]
-	data       []IN
+	comparator   stream.Comparator[IN]
+	data         []IN
+	expectedSize int
 }
 
 func (s *sink[IN]) Begin(size int) {
+	s.expectedSize = size
 	if size == -1 {
-		size = 0
+		size = 8
 	}
-	s.data = make([]IN, size)
+	s.data = make([]IN, 0, size)
 }
 
 func (s *sink[IN]) End() {
+	if s.expectedSize != -1 && len(s.data) != s.expectedSize {
+		panic(fmt.Sprintf("sort: slice length %d does not match size %d", len(s.data), s.expectedSize))
+	}
 	sort.Slice(s.data, func(i, j int) bool {
 		return s.comparator.Compare(s.data[i], s.data[j]) < 0
 	})

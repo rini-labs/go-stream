@@ -6,7 +6,7 @@ import (
 )
 
 func peekPipeline[OUT any](p pipeline[OUT], consumer stream.Consumer[OUT]) stream.Stream[OUT] {
-	return ofPipeline(p, func(sink stream.Sink[OUT]) stream.Sink[OUT] {
+	return OfStateless(p, func(flags int, sink stream.Sink[OUT]) stream.Sink[OUT] {
 		return peek.NewSink(sink, consumer)
-	})
+	}, 0)
 }

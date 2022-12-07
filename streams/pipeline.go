@@ -12,17 +12,20 @@ import (
 	"github.com/rini-labs/go-stream/supplier"
 )
 
-func Of[OUT any](iterator stream.Iterator[OUT]) stream.Stream[OUT] {
+func Of[OUT any](iterator stream.Iterator[OUT], sourceFlags int) stream.Stream[OUT] {
 	iteratorSupplier := supplier.Of(func() (stream.Iterator[OUT], error) { return iterator, nil })
-	return OfSupplier(iteratorSupplier)
+	return OfSupplier(iteratorSupplier, sourceFlags)
 }
 
-func OfSupplier[OUT any](iteratorSupplier stream.Supplier[stream.Iterator[OUT]]) stream.Stream[OUT] {
+func OfSupplier[OUT any](iteratorSupplier stream.Supplier[stream.Iterator[OUT]], sourceFlags int) stream.Stream[OUT] {
+	sourceOrOpFlags := sourceFlags & stream.MaskStream
 	return &rootPipeline[OUT, OUT]{
 		iteratorSupplier: iteratorSupplier,
-		wrapSink: func(sink stream.Sink[OUT]) stream.Sink[OUT] {
+		wrapSink: func(flags int, sink stream.Sink[OUT]) stream.Sink[OUT] {
 			return sink
 		},
+		sourceOrOpFlags: sourceOrOpFlags,
+		combinedFlags:   ^(sourceOrOpFlags << 1) & stream.InitialOpsValue,
 	}
 }
 
@@ -30,13 +33,27 @@ type pipeline[OUT any] interface {
 	Close() error
 	markAsConsumed()
 	iterator() (stream.Iterator[OUT], error)
+	getCombinedFlags() int
 }
 
-func ofPipeline[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink func(sink stream.Sink[OUT]) stream.Sink[IN]) stream.Stream[OUT] {
+type OpWrapSink[IN any, OUT any] func(flags int, sink stream.Sink[OUT]) stream.Sink[IN]
+
+func OfStateful[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
+	return ofPipeline(sourcePipeline, wrapSink, true, opsFlag)
+}
+
+func OfStateless[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
+	return ofPipeline(sourcePipeline, wrapSink, false, opsFlag)
+}
+
+func ofPipeline[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], stateful bool, opsFlag int) stream.Stream[OUT] {
 	rv := &rootPipeline[IN, OUT]{
 		iteratorSupplier: supplier.Of(sourcePipeline.iterator),
 		wrapSink:         wrapSink,
 		sourcePipeline:   sourcePipeline,
+		sourceOrOpFlags:  opsFlag & stream.MaskOp,
+		combinedFlags:    stream.CombineOpFlags(opsFlag, sourcePipeline.getCombinedFlags()),
+		opIsStateful:     stateful,
 	}
 	sourcePipeline.markAsConsumed()
 	return rv
@@ -45,8 +62,15 @@ func ofPipeline[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink func(sink
 type rootPipeline[IN any, OUT any] struct {
 	linkedOrConsumed bool
 	iteratorSupplier stream.Supplier[stream.Iterator[IN]]
-	wrapSink         func(sink stream.Sink[OUT]) stream.Sink[IN]
+	wrapSink         OpWrapSink[IN, OUT]
 	sourcePipeline   pipeline[IN]
+	sourceOrOpFlags  int
+	combinedFlags    int
+	opIsStateful     bool
+}
+
+func (p *rootPipeline[IN, OUT]) getCombinedFlags() int {
+	return p.combinedFlags
 }
 
 func (p *rootPipeline[IN, OUT]) Close() error {
@@ -70,7 +94,7 @@ func (p *rootPipeline[IN, OUT]) Iterator() (stream.Iterator[OUT], error) {
 }
 
 func (p *rootPipeline[IN, OUT]) iterator() (stream.Iterator[OUT], error) {
-	return iterators.WrappingIterator(p.wrapSink, p.iteratorSupplier), nil
+	return iterators.WrappingIterator[IN, OUT](p, p.iteratorSupplier), nil
 }
 
 func (p *rootPipeline[IN, OUT]) sourceIterator() (stream.Iterator[IN], error) {
@@ -97,7 +121,7 @@ func (p *rootPipeline[IN, OUT]) Filter(predicate stream.Predicate[OUT]) stream.S
 }
 
 func (p *rootPipeline[IN, OUT]) Sort(comparator stream.Comparator[OUT]) stream.Stream[OUT] {
-	return sortPipeline[OUT](p, comparator)
+	return sortPipeline[OUT](p, comparator, false)
 }
 
 func (p *rootPipeline[IN, OUT]) Peek(consumer stream.Consumer[OUT]) stream.Stream[OUT] {
@@ -147,6 +171,14 @@ func (p *rootPipeline[IN, OUT]) ToArray() ([]OUT, error) {
 	return p.evaluateToArrayNode().AsArray()
 }
 
+func (p *rootPipeline[IN, OUT]) WrapSink(sink stream.Sink[OUT]) stream.Sink[IN] {
+	return p.wrapSink(p.getCombinedFlags(), sink)
+}
+
+func (p *rootPipeline[IN, OUT]) GetStreamAndOpFlags() int {
+	return p.combinedFlags
+}
+
 func (p *rootPipeline[IN, OUT]) evaluateToArrayNode() nodes.Node[OUT] {
 	if p.linkedOrConsumed {
 		panic("stream has already been operated upon or closed")
@@ -159,7 +191,7 @@ func (p *rootPipeline[IN, OUT]) evaluateToArrayNode() nodes.Node[OUT] {
 }
 
 func (p *rootPipeline[IN, OUT]) evaluate(iterator stream.Iterator[IN]) nodes.Node[OUT] {
-	builder := nodes.BuilderOfSize[OUT](-1)
+	builder := nodes.BuilderOfSize[OUT](iterator.GetExactSizeIfKnown())
 	return wrapAndCopyInto(builder, p.wrapSink, iterator).Build()
 }
 
@@ -167,8 +199,8 @@ func evaluate[IN any, OUT any](iterator stream.Iterator[IN], terminalOp stream.T
 	return terminalOp.EvaluateSequential(iterator)
 }
 
-func wrapAndCopyInto[IN any, OUT any, S stream.Sink[OUT]](sink S, wrapSink func(sink stream.Sink[OUT]) stream.Sink[IN], iterator stream.Iterator[IN]) S {
-	copyInto(wrapSink(sink), iterator)
+func wrapAndCopyInto[IN any, OUT any, S stream.Sink[OUT]](sink S, wrapSink func(flags int, sink stream.Sink[OUT]) stream.Sink[IN], iterator stream.Iterator[IN]) S {
+	copyInto(wrapSink(0, sink), iterator)
 	return sink
 }
 

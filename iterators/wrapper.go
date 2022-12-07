@@ -4,15 +4,20 @@ import (
 	"github.com/rini-labs/go-stream"
 )
 
-func WrappingIterator[IN any, OUT any](wrapSink func(sink stream.Sink[OUT]) stream.Sink[IN], iteratorSupplier stream.Supplier[stream.Iterator[IN]]) stream.Iterator[OUT] {
+type PipelineHelper[IN any, OUT any] interface {
+	GetStreamAndOpFlags() int
+	WrapSink(sink stream.Sink[OUT]) stream.Sink[IN]
+}
+
+func WrappingIterator[IN any, OUT any](ph PipelineHelper[IN, OUT], iteratorSupplier stream.Supplier[stream.Iterator[IN]]) stream.Iterator[OUT] {
 	return &wrappingIterator[IN, OUT]{
-		wrapSink:         wrapSink,
+		ph:               ph,
 		iteratorSupplier: iteratorSupplier,
 	}
 }
 
 type wrappingIterator[IN any, OUT any] struct {
-	wrapSink         func(sink stream.Sink[OUT]) stream.Sink[IN]
+	ph               PipelineHelper[IN, OUT]
 	iteratorSupplier stream.Supplier[stream.Iterator[IN]]
 
 	iterator   stream.Iterator[IN]
@@ -60,6 +65,31 @@ func (wi *wrappingIterator[IN, OUT]) ForEachRemaining(consumer stream.Consumer[O
 	forEachRemaining[OUT](wi, consumer)
 }
 
+func (wi *wrappingIterator[IN, OUT]) EstimateSize() int {
+	wi.init()
+	return wi.iterator.EstimateSize()
+}
+func (wi *wrappingIterator[IN, OUT]) GetExactSizeIfKnown() int {
+	if stream.OpFlagSized.IsKnown(wi.ph.GetStreamAndOpFlags()) {
+		return wi.iterator.GetExactSizeIfKnown()
+	}
+	return -1
+}
+func (wi *wrappingIterator[IN, OUT]) Characteristics() int {
+	wi.init()
+
+	c := stream.ToCharacteristics(stream.ToStreamFlags(wi.ph.GetStreamAndOpFlags()))
+	if (c & SIZED) != 0 {
+		c &= ^SIZED
+		c |= wi.iterator.Characteristics() & SIZED
+	}
+
+	return c
+}
+func (wi *wrappingIterator[IN, OUT]) HasCharacteristics(characteristics int) bool {
+	return hasCharacteristics[OUT](wi, characteristics)
+}
+
 func (wi *wrappingIterator[IN, OUT]) init() error {
 	var err error
 	// Convert iteratorSupplier to iterator
@@ -70,7 +100,7 @@ func (wi *wrappingIterator[IN, OUT]) init() error {
 
 	b := NewBuffer[OUT]()
 	wi.buffer = b
-	wi.bufferSink = wi.wrapSink(b)
+	wi.bufferSink = wi.ph.WrapSink(b)
 	return nil
 }
 
