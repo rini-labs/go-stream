@@ -36,7 +36,7 @@ func (sn *sliceNode[T]) ForEach(consumer stream.Consumer[T]) error {
 	return nil
 }
 
-func (sn *sliceNode[T]) AsArray() ([]T, error) {
+func (sn *sliceNode[T]) AsSlice() ([]T, error) {
 	if sn.size != len(sn.data) {
 		return nil, errors.New("illegal state: slice size does not match data length")
 	}

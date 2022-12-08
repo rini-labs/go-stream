@@ -80,7 +80,7 @@ func (bn *bufferedNodeBuilder[OUT]) Build() Node[OUT] {
 	return bn
 }
 
-func (bn *bufferedNodeBuilder[T]) AsArray() ([]T, error) {
+func (bn *bufferedNodeBuilder[T]) AsSlice() ([]T, error) {
 	if bn.building {
 		return nil, errors.New("illegal state: during building")
 	}

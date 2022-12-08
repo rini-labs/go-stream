@@ -164,11 +164,11 @@ func (p *rootPipeline[IN, OUT]) Count() (int, error) {
 	})), nil
 }
 
-func (p *rootPipeline[IN, OUT]) ToArray() ([]OUT, error) {
+func (p *rootPipeline[IN, OUT]) ToSlice() ([]OUT, error) {
 	if p.linkedOrConsumed {
 		panic("stream has already been operated upon or closed")
 	}
-	return p.evaluateToArrayNode().AsArray()
+	return p.evaluateToArrayNode().AsSlice()
 }
 
 func (p *rootPipeline[IN, OUT]) WrapSink(sink stream.Sink[OUT]) stream.Sink[IN] {

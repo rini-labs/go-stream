@@ -69,14 +69,14 @@ func TestForEach(t *testing.T) {
 }
 
 func TestFilter(t *testing.T) {
-	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered).Filter(isEvent).ToArray()
+	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered).Filter(isEvent).ToSlice()
 	require.NoError(t, err)
 	assert.Equal(t, []int{2, 4}, data)
 	require.NoError(t, err)
 }
 
 func TestMapper(t *testing.T) {
-	data, err := streams.Map(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), doubleInt).ToArray()
+	data, err := streams.Map(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), doubleInt).ToSlice()
 	require.NoError(t, err)
 	assert.Equal(t, []int{2, 4, 6, 8, 10}, data)
 }
@@ -84,19 +84,19 @@ func TestMapper(t *testing.T) {
 func TestFlatMapper(t *testing.T) {
 	data, err := streams.FlatMap(streams.Of(iterators.OfSlice([]int{1, 2, 3, 4, 5}), stream.IsSorted|stream.IsOrdered), func(value int) stream.Stream[int] {
 		return streams.Of(iterators.OfSlice([]int{value, value}), stream.IsSorted|stream.IsOrdered)
-	}).ToArray()
+	}).ToSlice()
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 1, 2, 2, 3, 3, 4, 4, 5, 5}, data)
 }
 
 func TestDistinct(t *testing.T) {
-	data, err := streams.Distinct(streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered)).ToArray()
+	data, err := streams.Distinct(streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered)).ToSlice()
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 2, 4}, data)
 }
 
 func TestSorting(t *testing.T) {
-	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered).Sort(comparators.Natural[int]()).ToArray()
+	data, err := streams.Of(iterators.OfSlice([]int{1, 2, 1, 4, 2}), stream.IsSorted|stream.IsOrdered).Sort(comparators.Natural[int]()).ToSlice()
 	require.NoError(t, err)
 	assert.Equal(t, []int{1, 1, 2, 2, 4}, data)
 }

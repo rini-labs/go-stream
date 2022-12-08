@@ -7,7 +7,7 @@ type Node[T any] interface {
 
 	Count() int
 
-	AsArray() ([]T, error)
+	AsSlice() ([]T, error)
 }
 
 type NodeBuilder[T any] interface {

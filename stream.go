@@ -15,7 +15,7 @@ type Stream[OUT any] interface {
 
 	Skip(skip int) Stream[OUT]
 
-	ToArray() ([]OUT, error)
+	ToSlice() ([]OUT, error)
 
 	ReduceWithSeed(seed OUT, reducer func(OUT, OUT) OUT) (OUT, error)
 
