@@ -36,12 +36,12 @@ type pipeline[OUT any] interface {
 
 type OpWrapSink[IN any, OUT any] func(flags int, sink stream.Sink[OUT]) stream.Sink[IN]
 
-func OfStateful[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
-	return ofPipeline(sourcePipeline, wrapSink, true, opsFlag)
+func OfStateful[IN any, OUT any](sourceStream stream.Stream[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
+	return ofPipeline(sourceStream.(pipeline[IN]), wrapSink, true, opsFlag)
 }
 
-func OfStateless[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
-	return ofPipeline(sourcePipeline, wrapSink, false, opsFlag)
+func OfStateless[IN any, OUT any](sourceStream stream.Stream[IN], wrapSink OpWrapSink[IN, OUT], opsFlag int) stream.Stream[OUT] {
+	return ofPipeline(sourceStream.(pipeline[IN]), wrapSink, false, opsFlag)
 }
 
 func ofPipeline[IN any, OUT any](sourcePipeline pipeline[IN], wrapSink OpWrapSink[IN, OUT], stateful bool, opsFlag int) stream.Stream[OUT] {

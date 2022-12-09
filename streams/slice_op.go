@@ -10,7 +10,7 @@ func slicePipeline[OUT any](p pipeline[OUT], skip int, limit int) stream.Stream[
 	if limit != -1 {
 		opsFlag |= stream.IsShortCircuit
 	}
-	return OfStateful(p, func(flags int, sink stream.Sink[OUT]) stream.Sink[OUT] {
+	return OfStateful[OUT, OUT](p.(stream.Stream[OUT]), func(flags int, sink stream.Sink[OUT]) stream.Sink[OUT] {
 		return slice.NewSink(sink, skip, limit)
 	}, opsFlag)
 }
