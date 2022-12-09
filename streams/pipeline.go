@@ -21,11 +21,9 @@ func OfSupplier[OUT any](iteratorSupplier stream.Supplier[stream.Iterator[OUT]],
 	sourceOrOpFlags := sourceFlags & stream.MaskStream
 	return &rootPipeline[OUT, OUT]{
 		iteratorSupplier: iteratorSupplier,
-		wrapSink: func(flags int, sink stream.Sink[OUT]) stream.Sink[OUT] {
-			return sink
-		},
-		sourceOrOpFlags: sourceOrOpFlags,
-		combinedFlags:   ^(sourceOrOpFlags << 1) & stream.InitialOpsValue,
+		wrapSink:         nil,
+		sourceOrOpFlags:  sourceOrOpFlags,
+		combinedFlags:    ^(sourceOrOpFlags << 1) & stream.InitialOpsValue,
 	}
 }
 
@@ -94,6 +92,13 @@ func (p *rootPipeline[IN, OUT]) Iterator() (stream.Iterator[OUT], error) {
 }
 
 func (p *rootPipeline[IN, OUT]) iterator() (stream.Iterator[OUT], error) {
+	if p.wrapSink == nil {
+		iter, err := p.iteratorSupplier.Get()
+		if err != nil {
+			return nil, err
+		}
+		return iter.(stream.Iterator[OUT]), nil
+	}
 	return iterators.WrappingIterator[IN, OUT](p, p.iteratorSupplier), nil
 }
 
@@ -172,6 +177,9 @@ func (p *rootPipeline[IN, OUT]) ToSlice() ([]OUT, error) {
 }
 
 func (p *rootPipeline[IN, OUT]) WrapSink(sink stream.Sink[OUT]) stream.Sink[IN] {
+	if p.wrapSink == nil {
+		return sink.(stream.Sink[IN])
+	}
 	return p.wrapSink(p.getCombinedFlags(), sink)
 }
 
