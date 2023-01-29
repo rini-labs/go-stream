@@ -108,3 +108,13 @@ func TestCount(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 10, count)
 }
+
+func TestStreamToSlice(t *testing.T) {
+	values := []int{1, 2, 3, 4, 5}
+	s := streams.Of(iterators.OfSlice(values), stream.IsSorted|stream.IsOrdered)
+	assert.NotNil(t, s)
+
+	output, err := s.ToSlice()
+	require.NoError(t, err)
+	assert.Equal(t, values, output)
+}

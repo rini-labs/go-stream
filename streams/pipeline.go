@@ -2,16 +2,19 @@ package streams
 
 import (
 	"errors"
-	"github.com/rini-labs/go-stream/iterators"
-	"github.com/rini-labs/go-stream/reduce"
 
 	"github.com/rini-labs/go-stream"
 	"github.com/rini-labs/go-stream/foreach"
+	"github.com/rini-labs/go-stream/iterators"
 	"github.com/rini-labs/go-stream/nodes"
+	"github.com/rini-labs/go-stream/reduce"
 	"github.com/rini-labs/go-stream/sinks"
 	"github.com/rini-labs/go-stream/supplier"
 )
 
+func defaultWrapSink[IN any, OUT any](_ int, sink stream.Sink[OUT]) stream.Sink[IN] {
+	return sink.(stream.Sink[IN])
+}
 func Of[OUT any](iterator stream.Iterator[OUT], sourceFlags int) stream.Stream[OUT] {
 	iteratorSupplier := supplier.Of(func() (stream.Iterator[OUT], error) { return iterator, nil })
 	return OfSupplier(iteratorSupplier, sourceFlags)
@@ -21,7 +24,7 @@ func OfSupplier[OUT any](iteratorSupplier stream.Supplier[stream.Iterator[OUT]],
 	sourceOrOpFlags := sourceFlags & stream.MaskStream
 	return &rootPipeline[OUT, OUT]{
 		iteratorSupplier: iteratorSupplier,
-		wrapSink:         nil,
+		wrapSink:         defaultWrapSink[OUT, OUT],
 		sourceOrOpFlags:  sourceOrOpFlags,
 		combinedFlags:    ^(sourceOrOpFlags << 1) & stream.InitialOpsValue,
 	}
